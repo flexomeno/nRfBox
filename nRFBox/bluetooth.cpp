@@ -17,7 +17,6 @@ namespace BleJammer {
   const byte BLE_channels[] = {2, 26, 80}; 
   byte channelGroup1[] = {2, 5, 8, 11};    
   byte channelGroup2[] = {26, 29, 32, 35}; 
-  byte channelGroup3[] = {80, 83, 86, 89}; 
 
   volatile bool modeChangeRequested = false;
 
@@ -51,9 +50,6 @@ namespace BleJammer {
     if (RadioB.begin()) {
       configureRadio(RadioB, channelGroup2, sizeof(channelGroup2));
     }
-    if (RadioC.begin()) {
-      configureRadio(RadioC, channelGroup3, sizeof(channelGroup3));
-    }
   }
 
   void initializeRadios() {
@@ -62,7 +58,6 @@ namespace BleJammer {
     } else if (currentMode == DEACTIVE_MODE) {
       RadioA.powerDown();
       RadioB.powerDown();
-      RadioC.powerDown();
       delay(100);
     } 
   }
@@ -96,11 +91,6 @@ namespace BleJammer {
     u8g2.print("Radio 2: ");
     u8g2.setCursor(70, 50);
     u8g2.print(RadioB.isChipConnected() ? "Active" : "Inactive");
-
-    u8g2.setCursor(0, 64);
-    u8g2.print("Radio 3: ");
-    u8g2.setCursor(70, 64);
-    u8g2.print(RadioC.isChipConnected() ? "Active" : "Inactive");
 
     u8g2.sendBuffer();
   }
@@ -137,13 +127,11 @@ namespace BleJammer {
       byte channel = ble_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     } else if (currentMode == Bluetooth_MODULE) {
       int randomIndex = random(0, sizeof(bluetooth_channels) / sizeof(bluetooth_channels[0]));
       byte channel = bluetooth_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     }
   }
 }
@@ -153,7 +141,7 @@ namespace BleJammer {
 namespace BleScan {
 
 BLEScan* scan;
-BLEScanResults results;
+BLEScanResults* results = nullptr;
 
 int selectedIndex = 0;
 int displayStartIndex = 0;
@@ -224,7 +212,7 @@ void blescanLoop() {
       }
       lastDebounce = currentMillis;
     } else if (digitalRead(BUTTON_DOWN_PIN) == LOW) {
-      if (selectedIndex < results.getCount() - 1) {
+      if (selectedIndex < results->getCount() - 1) {
         selectedIndex++;
         if (selectedIndex >= displayStartIndex + 5) {
           displayStartIndex++;
@@ -242,11 +230,11 @@ void blescanLoop() {
     u8g2.setFont(u8g2_font_5x8_tr);
     u8g2.drawStr(0, 10, "BLE Devices:");
 
-    int deviceCount = results.getCount();
+    int deviceCount = results->getCount();
     for (int i = 0; i < 5; i++) {
       int deviceIndex = i + displayStartIndex;
       if (deviceIndex >= deviceCount) break;
-      BLEAdvertisedDevice device = results.getDevice(deviceIndex);
+      BLEAdvertisedDevice device = results->getDevice(deviceIndex);
       String deviceName = device.getName().c_str();
       u8g2.setFont(u8g2_font_6x10_tr);
       if (deviceName.length() == 0) {
@@ -262,7 +250,7 @@ void blescanLoop() {
   }
 
   if (showDetails) {
-    BLEAdvertisedDevice device = results.getDevice(selectedIndex);
+    BLEAdvertisedDevice device = results->getDevice(selectedIndex);
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_6x10_tr);
     u8g2.drawStr(0, 10, "Device Details:");
@@ -359,7 +347,7 @@ BLEAdvertisementData getOAdvertisementData() {
   packet[i++] =  0x10;  // Type ???
   esp_fill_random(&packet[i], 3);
 
-  advertisementData.addData(std::string((char *)packet, 17));
+  advertisementData.addData((char *)packet, 17);
   return advertisementData;
 }
 
@@ -391,7 +379,7 @@ void sourappleLoop() {
     BLEAdvertisementData oAdvertisementData = getOAdvertisementData();
 
     Advertising->setDeviceAddress(dummy_addr, BLE_ADDR_TYPE_RANDOM);
-    Advertising->addServiceUUID(device_uuid);
+    Advertising->addServiceUUID(device_uuid.c_str());
     Advertising->setAdvertisementData(oAdvertisementData);
 
     Advertising->setMinInterval(0x20);
@@ -492,7 +480,7 @@ namespace Spoofer {
     uint8_t advDataRaw[SAMSUNG_ADV_SIZE];
     memcpy(advDataRaw, SAMSUNG_ADV_TEMPLATE, SAMSUNG_ADV_SIZE);
     advDataRaw[SAMSUNG_ADV_SIZE - 1] = samsungModels[modelIndex].value;
-    advData.addData(std::string((char*)advDataRaw, SAMSUNG_ADV_SIZE));
+    advData.addData((char*)advDataRaw, SAMSUNG_ADV_SIZE);
     return true;
   }
 
@@ -500,14 +488,14 @@ namespace Spoofer {
     uint8_t advDataRaw[GOOGLE_ADV_SIZE];
     memcpy(advDataRaw, GOOGLE_ADV_TEMPLATE, GOOGLE_ADV_SIZE);
     advDataRaw[GOOGLE_ADV_SIZE - 1] = (uint8_t)(random(121) - 100); 
-    advData.addData(std::string((char*)advDataRaw, GOOGLE_ADV_SIZE));
+    advData.addData((char*)advDataRaw, GOOGLE_ADV_SIZE);
     return true;
   }
 
   BLEAdvertisementData getAdvertisementData() {
     BLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
     if (deviceType <= 17) { // Apple (1–17)
-      oAdvertisementData.addData(std::string((char*)DEVICES[device_index], 31));
+      oAdvertisementData.addData((char*)DEVICES[device_index], 31);
     } else if (deviceType <= 20) { // Samsung (18–20)
       uint8_t samsungIndex = deviceType - 18; // 18→0, 19→1, 20→2
       generateSamsungAdvPacket(samsungIndex, oAdvertisementData);
@@ -621,7 +609,7 @@ namespace Spoofer {
       }
       BLEAdvertisementData oAdvertisementData = getAdvertisementData();
       pAdvertising->setDeviceAddress(dummy_addr, BLE_ADDR_TYPE_RANDOM);
-      pAdvertising->addServiceUUID(devices_uuid);
+      pAdvertising->addServiceUUID(devices_uuid.c_str());
       pAdvertising->setAdvertisementData(oAdvertisementData);
       pAdvertising->setMinInterval(0x20); // 32.5ms
       pAdvertising->setMaxInterval(0x20);

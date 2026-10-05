@@ -28,7 +28,11 @@
 ## 📖 Explore the nRFBox Wiki
 
 Complete project story, in-depth tutorials, and all the features in [Wiki](https://github.com/cifertech/nRFBox/wiki)! From Wi-Fi deauthentication attacks to Sub-GHz signal replay, the Wiki covers everything you need to get started. [Click here to explore now!](https://github.com/cifertech/nRFBox/wiki)
-  
+
+> [!TIP]
+> **¿Armando este build con ESP32-WROOM-32U + 2× NRF24L01 + pantalla IPS GMT130 (ST7789) en vez del OLED original?**
+> Mira la guía completa de cableado y configuración en [`docs/custom-build/WIRING.md`](docs/custom-build/WIRING.md).
+
 <div>&nbsp;</div>
 
 <h2>🛠 Functionality Status and Reliability</h2>

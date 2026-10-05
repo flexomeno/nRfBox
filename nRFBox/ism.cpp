@@ -221,7 +221,6 @@ namespace ProtoKill {
 
   byte channelGroup_1[] = {2, 5, 8, 11};
   byte channelGroup_2[] = {26, 29, 32, 35};
-  byte channelGroup_3[] = {80, 83, 86, 89};
 
   const byte bluetooth_channels[] = {32, 34, 46, 48, 50, 52, 0, 1, 2, 4, 6, 8, 22, 24, 26, 28, 30, 74, 76, 78, 80};
   const byte ble_channels[] = {2, 26, 80};
@@ -283,9 +282,6 @@ namespace ProtoKill {
     if (RadioB.begin()) {
       configure_Radio(RadioB, channelGroup_2, sizeof(channelGroup_2));
     }
-    if (RadioC.begin()) {
-      configure_Radio(RadioC, channelGroup_3, sizeof(channelGroup_3));
-    }
   }
 
   void initialize_Radios() {
@@ -294,7 +290,6 @@ namespace ProtoKill {
     } else if (current == DEACTIVE_MODE) {
       RadioA.powerDown();
       RadioB.powerDown();
-      RadioC.powerDown();
       delay(100);
     }
   }
@@ -403,49 +398,41 @@ namespace ProtoKill {
       byte channel = ble_channels[randomIndex];
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     } else if (current_Mode == Bluetooth_MODULE) {
       int randomIndex = random(0, sizeof(bluetooth_channels) / sizeof(bluetooth_channels[0]));
       byte channel = bluetooth_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     } else if (current_Mode == WiFi_MODULE) {
       int randomIndex = random(0, sizeof(WiFi_channels) / sizeof(WiFi_channels[0]));
       byte channel = WiFi_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     } else if (current_Mode == USB_WIRELESS_MODULE) {
       int randomIndex = random(0, sizeof(usbWireless_channels) / sizeof(usbWireless_channels[0]));
       byte channel = usbWireless_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     } else if (current_Mode == VIDEO_TX_MODULE) {
       int randomIndex = random(0, sizeof(videoTransmitter_channels) / sizeof(videoTransmitter_channels[0]));
       byte channel = videoTransmitter_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     } else if (current_Mode == RC_MODULE) {
       int randomIndex = random(0, sizeof(rc_channels) / sizeof(rc_channels[0]));
       byte channel = rc_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     } else if (current_Mode == ZIGBEE_MODULE) {
       int randomIndex = random(0, sizeof(zigbee_channels) / sizeof(zigbee_channels[0]));
       byte channel = zigbee_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     } else if (current_Mode == NRF24_MODULE) {
       int randomIndex = random(0, sizeof(nrf24_channels) / sizeof(nrf24_channels[0]));
       byte channel = nrf24_channels[randomIndex]; 
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
     }
   }
 }
@@ -704,23 +691,22 @@ namespace Jammer {
 
   void setRadioParameters() {
     switch (dataRateIndex) {
-      case 0: RadioA.setDataRate(RF24_250KBPS); RadioB.setDataRate(RF24_250KBPS); RadioC.setDataRate(RF24_250KBPS); break;
-      case 1: RadioA.setDataRate(RF24_1MBPS); RadioB.setDataRate(RF24_1MBPS); RadioC.setDataRate(RF24_1MBPS); break;
-      case 2: RadioA.setDataRate(RF24_2MBPS); RadioB.setDataRate(RF24_2MBPS); RadioC.setDataRate(RF24_2MBPS); break;
+      case 0: RadioA.setDataRate(RF24_250KBPS); RadioB.setDataRate(RF24_250KBPS); break;
+      case 1: RadioA.setDataRate(RF24_1MBPS); RadioB.setDataRate(RF24_1MBPS); break;
+      case 2: RadioA.setDataRate(RF24_2MBPS); RadioB.setDataRate(RF24_2MBPS); break;
     }
 
     switch (paLevelIndex) {
-      case 0: RadioA.setPALevel(RF24_PA_MIN); RadioB.setPALevel(RF24_PA_MIN); RadioC.setPALevel(RF24_PA_MIN); break;
-      case 1: RadioA.setPALevel(RF24_PA_LOW); RadioB.setPALevel(RF24_PA_LOW); RadioC.setPALevel(RF24_PA_LOW); break;
-      case 2: RadioA.setPALevel(RF24_PA_HIGH); RadioB.setPALevel(RF24_PA_HIGH); RadioC.setPALevel(RF24_PA_HIGH); break;
-      case 3: RadioA.setPALevel(RF24_PA_MAX); RadioB.setPALevel(RF24_PA_MAX); RadioC.setPALevel(RF24_PA_MAX); break;
+      case 0: RadioA.setPALevel(RF24_PA_MIN); RadioB.setPALevel(RF24_PA_MIN); break;
+      case 1: RadioA.setPALevel(RF24_PA_LOW); RadioB.setPALevel(RF24_PA_LOW); break;
+      case 2: RadioA.setPALevel(RF24_PA_HIGH); RadioB.setPALevel(RF24_PA_HIGH); break;
+      case 3: RadioA.setPALevel(RF24_PA_MAX); RadioB.setPALevel(RF24_PA_MAX); break;
     }
   }
 
   void radioSetChannel(int channels) {
     RadioA.setChannel(channels);
     RadioB.setChannel(channels);
-    RadioC.setChannel(channels);
   }
 
 
@@ -742,15 +728,12 @@ namespace Jammer {
     if (jamming) {
       RadioA.powerUp();
       RadioB.powerUp();
-      RadioC.powerUp();
       setRadioParameters();
     } else {
       RadioA.stopListening();
       RadioA.powerDown();
       RadioB.stopListening();
       RadioB.powerDown();
-      RadioC.stopListening();
-      RadioC.powerDown();
     }
   }
 
@@ -842,7 +825,6 @@ namespace Jammer {
         radioSetChannel(i);
         RadioA.write(&text, sizeof(text));
         RadioB.write(&text, sizeof(text));
-        RadioC.write(&text, sizeof(text));
       }
     } else if (methode == 2) {
       // Check buttons to allow immediate deactivation
@@ -853,7 +835,6 @@ namespace Jammer {
       int randomIndex = random(0, sizeof(wlanchannels) / sizeof(wlanchannels[0]));
       bool resultA = RadioA.write(&randomIndex, sizeof(randomIndex));
       bool resultB = RadioB.write(&randomIndex, sizeof(randomIndex));
-      bool resultC = RadioC.write(&randomIndex, sizeof(randomIndex));
     } else if (methode == 3) {
       for (int i = 0; i < 22; i++) {
         // Check buttons to allow immediate deactivation
@@ -862,17 +843,14 @@ namespace Jammer {
         if (!jamming) break; // Exit loop if jamming is deactivated
         int channelA = ((channels * 5) + 1) + i;
         int channelB = ((channels * 5) + 1) + i + 1;
-        int channelC = ((channels * 5) + 1) + i + 2;
 
         int randomIndex = random(0, sizeof(wlanchannels) / sizeof(wlanchannels[0]));
 
         RadioA.setChannel(channelA);
         RadioB.setChannel(channelB);
-        RadioC.setChannel(channelC);
 
         RadioA.write(&randomIndex, sizeof(randomIndex));
         RadioB.write(&randomIndex, sizeof(randomIndex));
-        RadioC.write(&randomIndex, sizeof(randomIndex));
       }
     }
   }
@@ -955,7 +933,6 @@ namespace Jammer {
 
     configure(RadioA);
     configure(RadioB);
-    configure(RadioC);
 
     setRadioParameters();
 

@@ -7,9 +7,18 @@
 #include "icon.h"
 #include "config.h"
 
+// Single definitions of the shared global objects (declared `extern` in
+// setting.h / config.h). Keeping them here - instead of directly inside a
+// header included by several .cpp files - avoids "duplicate symbol" link
+// errors, since every other .cpp tab in this sketch is its own translation
+// unit that includes config.h.
+U8g2Compat u8g2;
+Adafruit_NeoPixel pixels(1, 14, NEO_GRB + NEO_KHZ800);
+bool neoPixelActive = false;
+uint8_t oledBrightness = 100;
+
 RF24 RadioA(NRF_CE_PIN_A, NRF_CSN_PIN_A);
 RF24 RadioB(NRF_CE_PIN_B, NRF_CSN_PIN_B);
-RF24 RadioC(NRF_CE_PIN_C, NRF_CSN_PIN_C);
 
 void setRadiosNeutralState() {
   RadioA.stopListening();
@@ -23,12 +32,6 @@ void setRadiosNeutralState() {
   RadioB.setRetries(0, 0);
   RadioB.powerDown(); 
   digitalWrite(NRF_CE_PIN_B, LOW); 
-
-  RadioC.stopListening();
-  RadioC.setAutoAck(false);
-  RadioC.setRetries(0, 0);
-  RadioC.powerDown(); 
-  digitalWrite(NRF_CE_PIN_C, LOW); 
 }
 
 void configureNrf(RF24 &radio) {
@@ -49,14 +52,9 @@ void setupRadioB() {
   configureNrf(RadioB);
 }
 
-void setupRadioC() {
-  configureNrf(RadioC);
-}
-
 void initAllRadios() {
   setupRadioA();
   setupRadioB();
-  setupRadioC();
 }
 
 void Str(uint8_t x, uint8_t y, const uint8_t* asciiArray, size_t len) {

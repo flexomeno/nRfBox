@@ -6,6 +6,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+// Logical UI canvas (kept at the original size on purpose - see
+// display_compat.h for how this is mapped onto the new 240x240 panel).
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
@@ -16,22 +18,19 @@
 #define BTN_PIN_RIGHT       27
 #define BTN_PIN_LEFT        25
 
-// SD Card Slot-specific Pins
+// SD Card Slot-specific Pins (optional - only used by Setting > Update Firmware)
 #define SD_CS_PIN 5
 #define FIRMWARE_FILE "/firmware.bin"
 
-// nRF24-specific Pins
+// nRF24-specific Pins (2 modules: A and B)
 #define NRF_CE_PIN_A    5   
 #define NRF_CSN_PIN_A   17 
 #define NRF_CE_PIN_B    16  
 #define NRF_CSN_PIN_B   4  
-#define NRF_CE_PIN_C    15  
-#define NRF_CSN_PIN_C   2  
 
 // Common dependencies
 #include "setting.h"
 #include <Arduino.h>
-#include <U8g2lib.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_NeoPixel.h>
@@ -42,9 +41,12 @@
 #include <SD.h>
 #include <Update.h>
 
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-
-Adafruit_NeoPixel pixels(1, 14, NEO_GRB + NEO_KHZ800);
+// Display: GMT130 / ST7789 240x240 IPS SPI panel, driven through the
+// U8g2Compat shim so every existing u8g2.* call keeps working.
+// (The actual objects are defined once in setting.cpp - see setting.h -
+// to avoid "duplicate symbol" link errors, since this header is
+// included from several separate .cpp translation units.)
+#include "display_compat.h"
 
 // BLE-specific dependencies
 #include <BLEDevice.h>
@@ -69,7 +71,7 @@ Adafruit_NeoPixel pixels(1, 14, NEO_GRB + NEO_KHZ800);
 #include <esp_wifi.h>
 
 // External declarations
-extern U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
+extern U8g2Compat u8g2;
 extern Adafruit_NeoPixel pixels;
 
 // BLE-related namespaces

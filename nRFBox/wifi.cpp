@@ -182,9 +182,13 @@ bool scanning = false;
 uint32_t last_packet_time = 0;
 String lastNeoPixelColour = "0"; 
 
-extern "C" int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3) {
-    return 0;
-}
+// NOTE: older esp32 Arduino cores left ieee80211_raw_frame_sanity_check()
+// undefined/weak, so deauther sketches used to provide this override to
+// allow injecting raw 802.11 frames freely. Current cores (tested with
+// esp32 by Espressif Systems 3.3.12) already ship this symbol inside
+// libnet80211.a, so redefining it here causes a "multiple definition"
+// link error. If you use an older core where the linker complains about
+// an *undefined* reference instead, re-add this function.
 
 void wsl_bypasser_send_raw_frame(const uint8_t *frame_buffer, int size) {
     esp_err_t res = esp_wifi_80211_tx(WIFI_IF_AP, frame_buffer, size, false);
