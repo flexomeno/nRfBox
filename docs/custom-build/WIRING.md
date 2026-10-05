@@ -8,7 +8,7 @@ Esta es una variante del firmware de nRFBox adaptada para usar:
 | Radios | 3× NRF24L01 (A/B/C) | **2× NRF24L01 con antena** (A/B) |
 | Pantalla | OLED SSD1306 128×64 I2C | **IPS GMT130 240×240 SPI (driver ST7789)**, sin pin CS |
 
-> Firmware compilado y **verificado de extremo a extremo** con `arduino-cli` (core `esp32:esp32` v3.3.12) y **flasheado y probado** sobre hardware real por USB. Ver sección [Estado de verificación](#estado-de-verificación-probado-en-hardware-real) al final.
+> Firmware compilado y **verificado de extremo a extremo** con `arduino-cli` (core `esp32:esp32` v3.3.12), **flasheado sobre hardware real por USB**, y **confirmado visualmente** en la pantalla física (menú renderizado, escalado a pantalla completa). Ver sección [Estado de verificación](#estado-de-verificación-probado-en-hardware-real) al final.
 
 ---
 
@@ -101,6 +101,9 @@ Los dos radios **comparten** SCK/MOSI/MISO (es el mismo bus SPI de hardware); so
 | `RES` | → | **2** |
 | `DC` | → | **15** |
 | `BLK` | → | **13** |
+| *(sin pin CS en el módulo)* | → | **12** ⚠️ ver nota |
+
+> ⚠️ **GPIO12 no se conecta a nada físicamente.** El módulo no tiene pin CS real (está soldado a GND dentro de su propia placa), pero la librería `TFT_eSPI` necesita que le pasemos un número de GPIO válido para su lógica interna. GPIO12 queda libre y sin cablear — es puramente una formalidad de software, no afecta el cableado real.
 
 ### 3.5 Botones (5× pulsador momentáneo)
 
@@ -185,9 +188,11 @@ Instalar desde el **Gestor de Librerías** del IDE (o `arduino-cli lib install`)
 |---|---|
 | RF24 (TMRh20) | 1.6.2 |
 | Adafruit NeoPixel | 1.15.5 |
-| Adafruit GFX Library | 1.12.6 |
-| Adafruit ST7735 and ST7789 Library | 1.11.0 |
+| Adafruit GFX Library | 1.12.6 (solo como clase base del adaptador, ver sección 8) |
+| **TFT_eSPI** (Bodmer) | **2.5.43** |
 | U8g2_for_Adafruit_GFX | 1.8.0 |
+
+> **Nota:** este build usa `TFT_eSPI`, **no** `Adafruit_ST7735_and_ST7789_Library`. En pruebas reales sobre hardware, la ruta de SPI por software (bit-banged) de `Adafruit_ST7789` compiló y corrió sin ningún error, pero no mostraba absolutamente nada en el panel físico (solo encendía el backlight). `TFT_eSPI`, que usa el periférico SPI por hardware del ESP32, funcionó de inmediato con el mismo cableado. Ver el comentario al inicio de `display_compat.h` para el detalle completo del diagnóstico.
 
 ## 7. Configuración de la tarjeta en Arduino IDE
 
@@ -203,7 +208,8 @@ Instalar desde el **Gestor de Librerías** del IDE (o `arduino-cli lib install`)
 
 | Archivo | Cambio |
 |---|---|
-| `display_compat.h` | **Nuevo.** Clase `U8g2Compat` que replica la API de `u8g2` (`clearBuffer`, `drawStr`, `print`, `drawXBMP`, etc.) pero dibuja sobre `Adafruit_ST7789` + `U8g2_for_Adafruit_GFX`. El lienzo lógico sigue siendo 128×64 (igual que el original) y se centra automáticamente en el panel físico 240×240, para no romper ningún ícono/menú existente. |
+| `display_compat.h` | **Nuevo.** Clase `U8g2Compat` que replica la API de `u8g2` (`clearBuffer`, `drawStr`, `print`, `drawXBMP`, etc.) pero dibuja sobre `TFT_eSPI` + `U8g2_for_Adafruit_GFX`. Como `TFT_eSPI` no hereda de `Adafruit_GFX` (solo de `Print`), incluye una clase puente (`TftGfxBridge`) que adapta la interfaz. El lienzo lógico sigue siendo 128×64 (igual que el original, así que ningún ícono/menú existente se rompe) pero ahora se **escala** (nearest-neighbour, uniforme en X/Y para no deformar íconos) para ocupar el panel 240×240 lo más grande posible sin estirar, y se centra. |
+| `tft_setup.h` | **Nuevo.** Configuración de pines/driver de `TFT_eSPI` en tiempo de compilación (la librería lo detecta automáticamente por estar en la carpeta del sketch). Define el driver ST7789, los pines reales, el pin CS "dummy" (ver sección 3.4) y fuerza el periférico HSPI para no chocar con el bus VSPI de los radios. |
 | `config.h` | Pines actualizados, se quitó el radio C, se agregó la pantalla nueva. |
 | `setting.h` / `setting.cpp` | Se quitó `RadioC`/`setupRadioC`. Las definiciones de `u8g2`, `pixels`, `neoPixelActive` y `oledBrightness` se centralizaron en `setting.cpp` (antes vivían como definiciones directas en un header incluido por 6 archivos `.cpp` distintos, lo que viola la regla de una sola definición y provoca errores de enlazado `duplicate symbol`/`multiple definition` con toolchains modernos). |
 | `ism.cpp` | Se eliminó `RadioC` de `ProtoKill` y `Jammer` (ahora usan 2 radios en vez de 3). |
@@ -215,7 +221,7 @@ Instalar desde el **Gestor de Librerías** del IDE (o `arduino-cli lib install`)
 
 ## 9. Limitaciones conocidas / pendientes a tu criterio
 
-- **Resolución de la UI:** el menú se dibuja en una ventana lógica de 128×64 centrada dentro del panel de 240×240 (queda un marco negro alrededor). Estirar/rediseñar cada pantalla para usar los 240×240 completos es un trabajo mucho más grande — es un posible siguiente paso si lo quieres.
+- **Resolución de la UI:** el menú se dibuja en una ventana lógica de 128×64, escalada de forma **uniforme** (misma proporción en X e Y, para no deformar íconos) hasta ocupar el ancho completo del panel de 240×240; como 64×escala < 240, queda un margen negro arriba y abajo (en vez de a los lados). Rediseñar cada pantalla pixel por pixel para usar los 240×240 completos con una escala no-uniforme (estirando distinto en X y en Y) seguiría siendo posible pero deformaría íconos circulares en óvalos — no se hizo por eso.
 - **Rotación:** si el contenido sale al revés o espejado, ajusta `#define TFT_ROTATION` (valores 0–3) en `display_compat.h`.
 - **Brillo (BLK):** por defecto se controla por PWM desde GPIO13. Si prefieres simplicidad, puedes cablear `BLK` directo a 3V3 (pierdes el control de brillo del menú Settings).
 - **2 radios en vez de 3:** el Jammer y el BLE Jammer multicanal cubren un grupo de canales menos que el diseño original de 3 módulos; sigue siendo funcional, solo con algo menos de cobertura simultánea.
@@ -224,6 +230,16 @@ Instalar desde el **Gestor de Librerías** del IDE (o `arduino-cli lib install`)
 
 ## Estado de verificación (probado en hardware real)
 
-- ✅ Compilación limpia con `arduino-cli` + core `esp32:esp32@3.3.12` (92% de uso de flash con `min_spiffs`).
+- ✅ Compilación limpia con `arduino-cli` + core `esp32:esp32@3.3.12` (93% de uso de flash con `min_spiffs`).
 - ✅ Flasheo por USB verificado por hash contra una placa ESP32-WROOM-32 real (`ESP32-D0WD-V3`, detectada vía `/dev/cu.usbserial-0001`).
-- ⚠️ Pendiente de confirmación visual por el usuario: que la pantalla y los 2 NRF24 respondan correctamente una vez cableados según este documento.
+- ✅ **Pantalla confirmada visualmente funcionando** sobre hardware real: menú principal renderizado correctamente, escalado a pantalla casi completa.
+- ⚠️ Pendiente de confirmación visual: que los 2 NRF24 respondan correctamente una vez cableados (Scanner/Analyzer/Jammer/etc.) — la pantalla y los radios se probaron por separado hasta ahora.
+
+### Diagnóstico de pantalla en blanco (para referencia futura)
+
+Si alguna vez la pantalla enciende el backlight pero no muestra nada:
+
+1. Esto **ya nos pasó** en este mismo build usando `Adafruit_GFX` + `Adafruit_ST7789` (SPI por software/bit-banged): compilaba y corría sin ningún error, pero no dibujaba nada en el panel físico.
+2. Se diagnosticó con sketches mínimos aislados (sin radios/botones) que confirmaron, por Serial, que el código llegaba hasta el final sin colgarse — descartando wiring y lógica de firmware como causa raíz.
+3. La causa real era la propia librería/ruta SPI. La solución fue migrar a `TFT_eSPI` (SPI por hardware vía el periférico HSPI del ESP32), **con el mismo cableado físico**, lo cual funcionó de inmediato.
+4. Si en el futuro se quisiera volver a `Adafruit_GFX` (por ejemplo por tamaño de flash), probar primero con un pin CS real conectado a un GPIO libre en vez de `-1`, como workaround conocido para variantes de esta librería en ESP32.
