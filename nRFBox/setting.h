@@ -29,7 +29,9 @@ extern Adafruit_NeoPixel pixels;
 extern bool neoPixelActive;
 extern uint8_t oledBrightness;
 
-// Only 2 physical nRF24 modules are wired on this build (A and B).
+// TEMPORAL: solo 2 modulos nRF24 fisicos cableados por ahora (A y B),
+// mientras se terminan las pruebas. El tercero (RadioC) se re-agregara
+// mas adelante - ver docs/custom-build/WIRING.md seccion 9.
 extern RF24 RadioA;
 extern RF24 RadioB;
 

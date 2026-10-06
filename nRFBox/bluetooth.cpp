@@ -8,6 +8,9 @@
 
 namespace BleJammer {
 
+  // TEMPORAL (en pruebas): solo RadioA/RadioB conectados por ahora.
+  // Al cablear el tercer NRF24, restaurar RadioC/channelGroup3 (ver repo
+  // original upstream/main) para recuperar la potencia de TX redundante.
   enum OperationMode { DEACTIVE_MODE, BLE_MODULE, Bluetooth_MODULE };
   OperationMode currentMode = DEACTIVE_MODE;
 

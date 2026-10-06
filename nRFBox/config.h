@@ -22,7 +22,9 @@
 #define SD_CS_PIN 5
 #define FIRMWARE_FILE "/firmware.bin"
 
-// nRF24-specific Pins (2 modules: A and B)
+// nRF24-specific Pins (TEMPORAL: solo 2 modulos cableados por ahora -
+// A y B - mientras se terminan las pruebas. El tercero (RadioC) se
+// re-agregara mas adelante; ver docs/custom-build/WIRING.md seccion 9)
 #define NRF_CE_PIN_A    5   
 #define NRF_CSN_PIN_A   17 
 #define NRF_CE_PIN_B    16  

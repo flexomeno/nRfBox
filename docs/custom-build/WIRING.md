@@ -1,12 +1,14 @@
-# nRFBox — Build personalizado (ESP32-WROOM-32U + 2× NRF24L01 + pantalla IPS ST7789)
+# nRFBox — Build personalizado (ESP32-WROOM-32U + NRF24L01 + pantalla IPS ST7789)
 
 Esta es una variante del firmware de nRFBox adaptada para usar:
 
 | | Original del repo | Este build |
 |---|---|---|
 | MCU | ESP32 genérico | **ESP32-WROOM-32U** DevKit (CP2102, antena externa) |
-| Radios | 3× NRF24L01 (A/B/C) | **2× NRF24L01 con antena** (A/B) |
+| Radios | 3× NRF24L01 (A/B/C) | **2× NRF24L01 con antena** (A/B) **por ahora** — ver nota ⚠️ abajo |
 | Pantalla | OLED SSD1306 128×64 I2C | **IPS GMT130 240×240 SPI (driver ST7789)**, sin pin CS |
+
+> ⚠️ **Estado temporal de pruebas:** por el momento el firmware y el cableado usan **solo 2 módulos NRF24 (A y B)** mientras se terminan las pruebas de hardware. El tercer módulo (RadioC) se volverá a agregar más adelante, una vez completadas estas pruebas — no es una decisión de diseño final. El código fuente tiene comentarios `TEMPORAL` en los puntos donde se quitó RadioC (`config.h`, `setting.h`, `ism.cpp`, `bluetooth.cpp`) para facilitar restaurarlo. Ver también la sección 9 más abajo: con 2 radios ya se tiene el 100% de las funciones del menú, así que agregar el tercero más adelante solo sumará potencia de TX redundante durante el jamming, no features nuevas.
 
 > Firmware compilado y **verificado de extremo a extremo** con `arduino-cli` (core `esp32:esp32` v3.3.12), **flasheado sobre hardware real por USB**, y **confirmado visualmente** en la pantalla física (menú renderizado, escalado a pantalla completa). Ver sección [Estado de verificación](#estado-de-verificación-probado-en-hardware-real) al final.
 
@@ -224,7 +226,7 @@ Instalar desde el **Gestor de Librerías** del IDE (o `arduino-cli lib install`)
 - **Resolución de la UI:** el menú se dibuja en una ventana lógica de 128×64, escalada de forma **uniforme** (misma proporción en X e Y, para no deformar íconos) hasta ocupar el ancho completo del panel de 240×240; como 64×escala < 240, queda un margen negro arriba y abajo (en vez de a los lados). Rediseñar cada pantalla pixel por pixel para usar los 240×240 completos con una escala no-uniforme (estirando distinto en X y en Y) seguiría siendo posible pero deformaría íconos circulares en óvalos — no se hizo por eso.
 - **Rotación:** si el contenido sale al revés o espejado, ajusta `#define TFT_ROTATION` (valores 0–3) en `display_compat.h`.
 - **Brillo (BLK):** por defecto se controla por PWM desde GPIO13. Si prefieres simplicidad, puedes cablear `BLK` directo a 3V3 (pierdes el control de brillo del menú Settings).
-- **2 radios en vez de 3 — auditado a fondo, sin pérdida real de funcionalidad:** se revisó línea por línea la lógica de `ProtoKill`/`blackout`, `Jammer` y `BleJammer` (los únicos 3 features que originalmente usaban el radio C). En los tres casos, el jamming **activo** siempre sincroniza todos los radios al **mismo canal** a la vez (`RadioA.setChannel(ch); RadioB.setChannel(ch);` …). Los arrays `channelGroup_1/2/3` (que sí asignaban canales distintos por radio) solo se usan una vez, de forma transitoria, al inicializar el modo — nunca durante el jamming activo. Conclusión: **el tercer radio nunca aportaba más canales cubiertos simultáneamente**, solo más potencia de transmisión redundante en el mismo canal. Con 2 radios se mantiene el 100% de las funciones del menú (ver tabla abajo); la única diferencia real es algo menos de potencia RF agregada durante el jamming.
+- **2 radios por ahora, 3º pendiente de agregar — auditado a fondo, sin pérdida real de funcionalidad mientras tanto:** se revisó línea por línea la lógica de `ProtoKill`/`blackout`, `Jammer` y `BleJammer` (los únicos 3 features que originalmente usaban el radio C). En los tres casos, el jamming **activo** siempre sincroniza todos los radios al **mismo canal** a la vez (`RadioA.setChannel(ch); RadioB.setChannel(ch);` …). Los arrays `channelGroup_1/2/3` (que sí asignaban canales distintos por radio) solo se usan una vez, de forma transitoria, al inicializar el modo — nunca durante el jamming activo. Conclusión: **el tercer radio nunca aportaba más canales cubiertos simultáneamente**, solo más potencia de transmisión redundante en el mismo canal. Con 2 radios ya se tiene el 100% de las funciones del menú (ver tabla abajo), así que **durante las pruebas actuales no hace falta esperar al tercer radio para nada funcional** — la única diferencia real al agregarlo después será algo más de potencia RF agregada durante el jamming.
 
   | Función | ¿Usa NRF24? | Radios usados | Efecto de 2 vs 3 |
   |---|---|---|---|
@@ -233,6 +235,8 @@ Instalar desde el **Gestor de Librerías** del IDE (o `arduino-cli lib install`)
   | BLE Spoofer / Sour Apple / BLE Scan | No (BLE nativo del ESP32) | — | Ninguno |
   | WiFi Scan / Deauther | No (WiFi nativo del ESP32) | — | Ninguno |
   | About / Setting | No | — | Ninguno |
+
+  **Pendiente para cuando se agregue el tercer radio (RadioC):** restaurar en el código (marcado con comentarios `TEMPORAL` en `config.h`, `setting.h`, `ism.cpp` y `bluetooth.cpp`) los pines `NRF_CE_PIN_C`/`NRF_CSN_PIN_C`, el objeto `RadioC`, `channelGroup_3`/`wifiGroup3` y las llamadas correspondientes en `ProtoKill`, `Jammer` y `BleJammer` — se puede usar `git show upstream/main:nRFBox/ism.cpp` (y el equivalente en `bluetooth.cpp`) como referencia del código original de 3 radios. También actualizar esta tabla y el encabezado de este documento una vez esté cableado y probado.
 
 ---
 

@@ -213,6 +213,13 @@ namespace Analyzer {
 
 namespace ProtoKill {
 
+  // TEMPORAL (en pruebas): este build usa solo RadioA/RadioB por ahora.
+  // channelGroup_3 (y su uso con un RadioC) se quitó al remover el tercer
+  // radio, pero es solo una reduccion de potencia de TX redundante, no de
+  // canales cubiertos (ver docs/custom-build/WIRING.md, seccion 9) -
+  // cuando se cablee el tercer NRF24, restaurar channelGroup_3 y volver a
+  // llamar configure_Radio()/blackoutLoop() con RadioC igual que en el
+  // repo original (upstream/main) para recuperar la redundancia de TX.
   enum OperationMode {WiFi_MODULE, VIDEO_TX_MODULE, RC_MODULE, BLE_MODULE, Bluetooth_MODULE, USB_WIRELESS_MODULE, ZIGBEE_MODULE, NRF24_MODULE};
   OperationMode current_Mode = WiFi_MODULE;
 
@@ -661,6 +668,9 @@ namespace Scanner {
 
 namespace Jammer {
 
+  // TEMPORAL (en pruebas): solo RadioA/RadioB conectados por ahora.
+  // Al cablear el tercer NRF24, restaurar RadioC/wifiGroup3 (ver repo
+  // original upstream/main) para recuperar la potencia de TX redundante.
   const int num_channels = 64;
   int value[num_channels];
   int valuesDisplay[32];
