@@ -224,7 +224,15 @@ Instalar desde el **Gestor de Librerías** del IDE (o `arduino-cli lib install`)
 - **Resolución de la UI:** el menú se dibuja en una ventana lógica de 128×64, escalada de forma **uniforme** (misma proporción en X e Y, para no deformar íconos) hasta ocupar el ancho completo del panel de 240×240; como 64×escala < 240, queda un margen negro arriba y abajo (en vez de a los lados). Rediseñar cada pantalla pixel por pixel para usar los 240×240 completos con una escala no-uniforme (estirando distinto en X y en Y) seguiría siendo posible pero deformaría íconos circulares en óvalos — no se hizo por eso.
 - **Rotación:** si el contenido sale al revés o espejado, ajusta `#define TFT_ROTATION` (valores 0–3) en `display_compat.h`.
 - **Brillo (BLK):** por defecto se controla por PWM desde GPIO13. Si prefieres simplicidad, puedes cablear `BLK` directo a 3V3 (pierdes el control de brillo del menú Settings).
-- **2 radios en vez de 3:** el Jammer y el BLE Jammer multicanal cubren un grupo de canales menos que el diseño original de 3 módulos; sigue siendo funcional, solo con algo menos de cobertura simultánea.
+- **2 radios en vez de 3 — auditado a fondo, sin pérdida real de funcionalidad:** se revisó línea por línea la lógica de `ProtoKill`/`blackout`, `Jammer` y `BleJammer` (los únicos 3 features que originalmente usaban el radio C). En los tres casos, el jamming **activo** siempre sincroniza todos los radios al **mismo canal** a la vez (`RadioA.setChannel(ch); RadioB.setChannel(ch);` …). Los arrays `channelGroup_1/2/3` (que sí asignaban canales distintos por radio) solo se usan una vez, de forma transitoria, al inicializar el modo — nunca durante el jamming activo. Conclusión: **el tercer radio nunca aportaba más canales cubiertos simultáneamente**, solo más potencia de transmisión redundante en el mismo canal. Con 2 radios se mantiene el 100% de las funciones del menú (ver tabla abajo); la única diferencia real es algo menos de potencia RF agregada durante el jamming.
+
+  | Función | ¿Usa NRF24? | Radios usados | Efecto de 2 vs 3 |
+  |---|---|---|---|
+  | Scanner / Analyzer | Sí | Solo A | Ninguno (B/C nunca se usaron aquí) |
+  | WLAN Jammer / Proto Kill / BLE Jammer | Sí | A+B | Ninguno en cobertura — solo ~33% menos potencia agregada en el mismo canal |
+  | BLE Spoofer / Sour Apple / BLE Scan | No (BLE nativo del ESP32) | — | Ninguno |
+  | WiFi Scan / Deauther | No (WiFi nativo del ESP32) | — | Ninguno |
+  | About / Setting | No | — | Ninguno |
 
 ---
 
