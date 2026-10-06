@@ -245,7 +245,8 @@ Instalar desde el **Gestor de Librerías** del IDE (o `arduino-cli lib install`)
 - ✅ Compilación limpia con `arduino-cli` + core `esp32:esp32@3.3.12` (93% de uso de flash con `min_spiffs`).
 - ✅ Flasheo por USB verificado por hash contra una placa ESP32-WROOM-32 real (`ESP32-D0WD-V3`, detectada vía `/dev/cu.usbserial-0001`).
 - ✅ **Pantalla confirmada visualmente funcionando** sobre hardware real: menú principal renderizado correctamente, escalado a pantalla casi completa.
-- ⚠️ Pendiente de confirmación visual: que los 2 NRF24 respondan correctamente una vez cableados (Scanner/Analyzer/Jammer/etc.) — la pantalla y los radios se probaron por separado hasta ahora.
+- ✅ **Radio A y Radio B confirmados funcionando de extremo a extremo**: `isChipConnected()` OK en ambos, y además **efecto de RF verificado en la práctica** con la función BLE Jammer — al activar el modo `[Bluetooth]` (botón UP dentro de esa pantalla cicla `Deactive → BLE → Bluetooth`), el audio de un dispositivo Bluetooth cercano se entrecorta, confirmando que los radios sí están transmitiendo la portadora/barrido de canales esperado.
+- Pendiente: probar el resto de funciones que usan NRF24 (Scanner, Analyzer, WLAN Jammer, Proto Kill).
 
 ### Diagnóstico de pantalla en blanco (para referencia futura)
 
